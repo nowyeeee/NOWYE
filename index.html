@@ -1009,54 +1009,39 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   document.getElementById("saveMealNotifSettings")?.addEventListener("click",saveSettings);
 
   // Open the notification permission prompt from the existing button.
- document.getElementById("enableBrowserNotifications")?.addEventListener("click", async () => {
+document.getElementById("enableBrowserNotifications")?.addEventListener("click", async () => {
   try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      alert("Bu cihaz gerçek push bildirimini desteklemiyor.");
+      return;
+    }
+
     if (!("Notification" in window)) {
       alert("Bu cihaz bildirimleri desteklemiyor.");
       return;
     }
 
-    const permission = await Notification.requestPermission();
+    if (Notification.permission !== "granted") {
+      const permission = await Notification.requestPermission();
 
-    if (permission !== "granted") {
-      alert("Bildirim izni verilmedi.");
+      if (permission !== "granted") {
+        alert("Bildirim izni verilmedi.");
+        return;
+      }
+    }
+
+    const { data: { user }, error } = await db.auth.getUser();
+
+    if (error || !user) {
+      alert("Önce NOWYE hesabına giriş yapmalısın.");
       return;
     }
 
-    const reg = await navigator.serviceWorker.register("./sw.js");
+    await setupRealPush(user);
 
-    let sub = await reg.pushManager.getSubscription();
-
-    if (!sub) {
-      const { data, error } = await db.functions.invoke("vapid-public-key", {
-        body: {}
-      });
-
-      if (error) throw new Error(error.message);
-
-      const publicKey = data?.publicKey;
-
-      if (!publicKey) {
-        throw new Error("VAPID public key alınamadı.");
-      }
-
-      const raw = atob(
-        publicKey.replace(/-/g, "+").replace(/_/g, "/")
-      );
-
-      const key = Uint8Array.from(raw, c => c.charCodeAt(0));
-
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: key
-      });
-    }
-
-    alert("🔔 Bildirimler başarıyla açıldı!");
-
-  } catch (e) {
-    console.error(e);
-    alert("Bildirim kurulamadı: " + (e.message || e));
+  } catch (err) {
+    console.error(err);
+    alert("Bildirim kurulamadı: " + (err?.message || err));
   }
 });
   setInterval(scheduleTick,15000);
