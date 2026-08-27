@@ -1009,13 +1009,56 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   document.getElementById("saveMealNotifSettings")?.addEventListener("click",saveSettings);
 
   // Open the notification permission prompt from the existing button.
-  document.getElementById("enableBrowserNotifications")?.addEventListener("click", async ()=>{
-    if("Notification" in window){
-      const p=await Notification.requestPermission();
-      if(p==="granted") notifyMeal("NOWYE DİYET bildirimleri açık","Kahvaltı, öğle, akşam ve motivasyon bildirimlerini ayarlayabilirsin.");
+ document.getElementById("enableBrowserNotifications")?.addEventListener("click", async () => {
+  try {
+    if (!("Notification" in window)) {
+      alert("Bu cihaz bildirimleri desteklemiyor.");
+      return;
     }
-  });
 
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      alert("Bildirim izni verilmedi.");
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.register("./sw.js");
+
+    let sub = await reg.pushManager.getSubscription();
+
+    if (!sub) {
+      const { data, error } = await db.functions.invoke("vapid-public-key", {
+        body: {}
+      });
+
+      if (error) throw new Error(error.message);
+
+      const publicKey = data?.publicKey;
+
+      if (!publicKey) {
+        throw new Error("VAPID public key alınamadı.");
+      }
+
+      const raw = atob(
+        publicKey.replace(/-/g, "+").replace(/_/g, "/")
+      );
+
+      const key = Uint8Array.from(raw, c => c.charCodeAt(0));
+
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key
+      });
+    }
+
+    alert("🔔 Bildirimler başarıyla açıldı!");
+
+  } catch (e) {
+    console.error(e);
+    alert("Bildirim kurulamadı: " + (e.message || e));
+  }
+});
   setInterval(scheduleTick,15000);
   scheduleTick();
 })();
