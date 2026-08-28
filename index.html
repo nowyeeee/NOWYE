@@ -1208,5 +1208,38 @@ document.getElementById("enableBrowserNotifications")?.addEventListener("click",
   }, true);
 })();
 </script>
+  <script>
+document.addEventListener("click", async function(e) {
+  const save = e.target.closest("#saveMealNotifSettings");
+
+  if (save) {
+    e.preventDefault();
+
+    const s = {
+      breakfast: document.getElementById("notifBreakfast")?.checked ?? true,
+      lunch: document.getElementById("notifLunch")?.checked ?? true,
+      dinner: document.getElementById("notifDinner")?.checked ?? true,
+      snack: document.getElementById("notifSnack")?.checked ?? true,
+      motivation: document.getElementById("notifMotivation")?.checked ?? true,
+      breakfastTime: document.getElementById("timeBreakfast")?.value || "08:00",
+      lunchTime: document.getElementById("timeLunch")?.value || "13:00",
+      dinnerTime: document.getElementById("timeDinner")?.value || "19:00",
+      snackTime: document.getElementById("timeSnack")?.value || "15:00",
+      motivationTime: document.getElementById("timeMotivation")?.value || "09:00"
+    };
+
+    localStorage.setItem("nowye_notification_settings", JSON.stringify(s));
+
+    const box = document.getElementById("notifSettingsMsg");
+
+    if (box) {
+      box.innerHTML =
+        '<div class="success">✓ Bildirim seçenekleri kaydedildi.</div>';
+    } else {
+      alert("✓ Bildirim seçenekleri kaydedildi.");
+    }
+  }
+});
+</script>
 </body>
 </html>
