@@ -924,24 +924,83 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
       .forEach(([id,v])=>{const el=document.getElementById(id); if(el) el.value=v;});
   }
 
-  function saveSettings(){
-    const s={
-      breakfast:document.getElementById("notifBreakfast")?.checked ?? true,
-      lunch:document.getElementById("notifLunch")?.checked ?? true,
-      dinner:document.getElementById("notifDinner")?.checked ?? true,
-      snack:document.getElementById("notifSnack")?.checked ?? true,
-      motivation:document.getElementById("notifMotivation")?.checked ?? true,
-      breakfastTime:document.getElementById("timeBreakfast")?.value || "08:00",
-      lunchTime:document.getElementById("timeLunch")?.value || "13:00",
-      dinnerTime:document.getElementById("timeDinner")?.value || "19:00",
-      snackTime:document.getElementById("timeSnack")?.value || "15:00",
-      motivationTime:document.getElementById("timeMotivation")?.value || "09:00"
-    };
-    setSettings(s);
-    const box=document.getElementById("notifSettingsMsg");
-    if(box) box.innerHTML='<div class="success">✓ Bildirim seçenekleri kaydedildi.</div>';
-    scheduleTick();
+ ```js
+async function saveSettings(){
+  const s = {
+    breakfast: document.getElementById("notifBreakfast")?.checked ?? true,
+    lunch: document.getElementById("notifLunch")?.checked ?? true,
+    dinner: document.getElementById("notifDinner")?.checked ?? true,
+    snack: document.getElementById("notifSnack")?.checked ?? true,
+    motivation: document.getElementById("notifMotivation")?.checked ?? true,
+
+    breakfastTime: document.getElementById("timeBreakfast")?.value || "08:30",
+    lunchTime: document.getElementById("timeLunch")?.value || "13:00",
+    dinnerTime: document.getElementById("timeDinner")?.value || "19:00",
+    snackTime: document.getElementById("timeSnack")?.value || "16:30",
+    motivationTime: document.getElementById("timeMotivation")?.value || "09:00"
+  };
+
+  // Telefonda da sakla
+  setSettings(s);
+
+  // Supabase'e de kaydet
+  try {
+    const { data: { user }, error: userError } =
+      await db.auth.getUser();
+
+    if (userError || !user) {
+      throw new Error("Önce NOWYE hesabına giriş yapmalısın.");
+    }
+
+    const { error } = await db
+      .from("notification_settings")
+      .upsert({
+        user_id: user.id,
+
+        breakfast: s.breakfast,
+        lunch: s.lunch,
+        snack: s.snack,
+        dinner: s.dinner,
+        motivation: s.motivation,
+
+        breakfast_time: s.breakfastTime + ":00",
+        lunch_time: s.lunchTime + ":00",
+        snack_time: s.snackTime + ":00",
+        dinner_time: s.dinnerTime + ":00",
+        motivation_time: s.motivationTime + ":00",
+
+        timezone: "Europe/Istanbul"
+      });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const box = document.getElementById("notifSettingsMsg");
+
+    if (box) {
+      box.innerHTML =
+        '<div class="success">✓ Bildirim seçenekleri kaydedildi.</div>';
+    }
+
+  } catch (err) {
+
+    console.error(err);
+
+    const box = document.getElementById("notifSettingsMsg");
+
+    if (box) {
+      box.innerHTML =
+        '<div class="notice">Bildirim ayarları kaydedilemedi: ' +
+        (err?.message || String(err)) +
+        '</div>';
+    }
   }
+
+  scheduleTick();
+}
+```
+
 
   function notifyMeal(title, body){
     if(!("Notification" in window) || Notification.permission!=="granted") return;
