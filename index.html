@@ -914,17 +914,71 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   }
   function setSettings(s){ localStorage.setItem(key, JSON.stringify(s)); }
 
-  function loadSettings(){
-    const s=getSettings();
-    const pairs=[
-      ["notifBreakfast",s.breakfast],["notifLunch",s.lunch],["notifDinner",s.dinner],["notifSnack",s.snack],["notifMotivation",s.motivation]
-    ];
-    pairs.forEach(([id,v])=>{const el=document.getElementById(id); if(el) el.checked=v;});
-    [["timeBreakfast",s.breakfastTime],["timeLunch",s.lunchTime],["timeDinner",s.dinnerTime],["timeSnack",s.snackTime],["timeMotivation",s.motivationTime]]
-      .forEach(([id,v])=>{const el=document.getElementById(id); if(el) el.value=v;});
-  }
+ async function loadSettings(){
+  const local = getSettings();
 
- ```js
+  const setScreen = (s) => {
+    const pairs = [
+      ["notifBreakfast", s.breakfast],
+      ["notifLunch", s.lunch],
+      ["notifDinner", s.dinner],
+      ["notifSnack", s.snack],
+      ["notifMotivation", s.motivation]
+    ];
+
+    pairs.forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = value;
+    });
+
+    [
+      ["timeBreakfast", s.breakfastTime],
+      ["timeLunch", s.lunchTime],
+      ["timeDinner", s.dinnerTime],
+      ["timeSnack", s.snackTime],
+      ["timeMotivation", s.motivationTime]
+    ].forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el && value) el.value = value;
+    });
+  };
+
+  setScreen(local);
+
+  try {
+    const { data: { user }, error: userError } =
+      await db.auth.getUser();
+
+    if (userError || !user) return;
+
+    const { data, error } = await db
+      .from("notification_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error || !data) return;
+
+    const s = {
+      breakfast: data.breakfast,
+      lunch: data.lunch,
+      dinner: data.dinner,
+      snack: data.snack,
+      motivation: data.motivation,
+      breakfastTime: String(data.breakfast_time).slice(0,5),
+      lunchTime: String(data.lunch_time).slice(0,5),
+      dinnerTime: String(data.dinner_time).slice(0,5),
+      snackTime: String(data.snack_time).slice(0,5),
+      motivationTime: String(data.motivation_time).slice(0,5)
+    };
+
+    setSettings(s);
+    setScreen(s);
+
+  } catch (err) {
+    console.error("Bildirim ayarları yüklenemedi:", err);
+  }
+}
 async function saveSettings(){
   const s = {
     breakfast: document.getElementById("notifBreakfast")?.checked ?? true,
