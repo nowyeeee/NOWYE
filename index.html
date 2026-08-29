@@ -1110,7 +1110,7 @@ motivation_time: s.motivationTime,
         "🍌 Muz + bir avuç kuruyemiş"
       ];
       const snack = snackOptions[new Date().getDate() % snackOptions.length];
-      notifyMeal("🍎 Ara öğün zamanı · NOWYE DİYET","Saat 15:00 — bugünün ara öğün önerisi: "+snack);
+     notifyMeal("🍎 Ara öğün zamanı · NOWYE DİYET","Ara öğün zamanı! Bugünün ara öğün önerisi: "+snack);
     }
 
     if(s.motivation && sameMinute(s.motivationTime) && dailyOnce("motivation"))
